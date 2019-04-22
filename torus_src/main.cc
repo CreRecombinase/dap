@@ -273,7 +273,7 @@ int main(int argc, char **argv){
   }
    
 
-  con.load_map(gmap_file, smap_file);  
+  //con.load_map(gmap_file, smap_file);
   con.load_annotation(annot_file);
   fprintf(stderr,"Initializing ... \n");
 

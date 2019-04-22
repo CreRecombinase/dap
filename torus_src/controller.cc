@@ -13,7 +13,11 @@
 #include "logistic.h"
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unordered_map>
 #include <errno.h>
+//#include <xtensor-io>
+
+
 
 void controller::load_data(char *filename){
 
@@ -39,6 +43,7 @@ void controller::load_data(char *filename){
   double t_val;
   int index_count = 0;
   int loc_count = 0;
+  size_t snpct=0;
   while(getline(in,line)){
 
     ins.clear();
@@ -59,8 +64,8 @@ void controller::load_data(char *filename){
 	  }else{
 	    // already defined, concate the existing snpVec
 	    int pos = loc_hash[curr_loc_id];
-	    for(int i=0;i<snp_vec.size();i++){
-	      locVec[pos].snpVec.push_back(snp_vec[i]);
+	    for(auto &tsnp: snp_vec){
+	      locVec[pos].snpVec.push_back(tsnp);
 	    }	   
 	  }
 	  
@@ -73,10 +78,11 @@ void controller::load_data(char *filename){
       
       se_beta = beta/t_val;
       double log10_BF = compute_log10_BF(t_val);
-      SNP snp(snp_id, log10_BF, index_count);
-      index_count++;
-      snp_hash[snp_id] = 100;
-      snp_vec.push_back(snp);
+      snp_hash[snp_id] = snpct;
+
+      snp_vec.emplace_back(snpct, log10_BF, index_count);
+            index_count++;
+      snpct++;
       
     }
   }
@@ -92,8 +98,8 @@ void controller::load_data(char *filename){
   }else{
     // already defined, concate the existing snpVec                                               
     int pos = loc_hash[curr_loc_id];
-    for(int i=0;i<snp_vec.size();i++){
-      locVec[pos].snpVec.push_back(snp_vec[i]);
+    for(auto &tsnp : snp_vec){
+      locVec[pos].snpVec.push_back(tsnp);
     }
   }
   
@@ -139,7 +145,7 @@ void controller::load_data_fastqtl(char *filename){
   int loc_count = 0;
 
   map<int, int> bin_hash;
-  
+  size_t snpct=0;
 
   while(getline(in,line)){
 
@@ -160,8 +166,8 @@ void controller::load_data_fastqtl(char *filename){
           }else{
             // already defined, concate the existing snpVec                                              
             int pos = loc_hash[curr_loc_id];
-            for(int i=0;i<snp_vec.size();i++){
-              locVec[pos].snpVec.push_back(snp_vec[i]);
+            for(auto &tsnp : snp_vec){
+              locVec[pos].snpVec.push_back(tsnp);
             }
           }
 
@@ -173,9 +179,15 @@ void controller::load_data_fastqtl(char *filename){
       }
       
       double log10_BF = compute_log10_BF(bhat, sdbeta);
-      SNP snp(snp_id, log10_BF, index_count);
+
+      snp_hash[snp_id] = snpct;
+      //            SNP snp(snp_id, log10_BF, index_count);
+      snp_vec.emplace_back(snpct,log10_BF,index_count);
+            index_count++;
+      auto &snp = snp_vec.back();
 
       // handling dtss info
+
       if(fastqtl_use_dtss){
 	int bin = classify_dist_bin(dtss, 0 , dist_bin_size);
 	if(bin_hash.find(bin)==bin_hash.end()){
@@ -186,9 +198,8 @@ void controller::load_data_fastqtl(char *filename){
 	snp.dtss_bin = bin;
       }
       
-      index_count++;
-      snp_hash[snp_id] = 100;
-      snp_vec.push_back(snp);
+
+      snpct++;
       
     }
   }
@@ -206,8 +217,8 @@ void controller::load_data_fastqtl(char *filename){
   }else{
     // already defined, concate the existing snpVec                                                       
     int pos = loc_hash[curr_loc_id];
-    for(int i=0;i<snp_vec.size();i++){
-      locVec[pos].snpVec.push_back(snp_vec[i]);
+    for(auto &tsnp : snp_vec){
+      locVec[pos].snpVec.push_back(tsnp);
     }
   }
 
@@ -235,7 +246,7 @@ void controller::load_data_fastqtl(char *filename){
     for (int i=0;i<locVec.size();i++){
     
       for(int j=0;j<locVec[i].snpVec.size();j++){
-	string snp_id = locVec[i].snpVec[j].id;
+	auto snp_id = locVec[i].snpVec[j].id;
 	gsl_vector_int_set(dist_bin,locVec[i].snpVec[j].index, dtss_map[locVec[i].snpVec[j].dtss_bin]);
       }
     }
@@ -279,6 +290,7 @@ void controller::load_data_zscore(char *filename){
   double z_val;
   int index_count = 0;
   int loc_count = 0;
+  size_t snpct = 0;
   while(getline(in,line)){
 
     ins.clear();
@@ -300,9 +312,9 @@ void controller::load_data_zscore(char *filename){
 	  }else{
 	    // already defined, concate the existing snpVec
 	    int pos = loc_hash[curr_loc_id];
-	    for(int i=0;i<snp_vec.size();i++){
-	      locVec[pos].snpVec.push_back(snp_vec[i]);
-	    }	   
+	    for(auto &tsnp : snp_vec){
+              locVec[pos].snpVec.push_back(tsnp);
+            }
 	  }
 	  
 	  snp_vec.clear();
@@ -313,12 +325,13 @@ void controller::load_data_zscore(char *filename){
       }
       
       double log10_BF = compute_log10_BF(z_val);
+      snp_hash[snp_id] =snpct;
       //printf("%15s   %7.3f\n", snp_id.c_str(), log10_BF);
-      SNP snp(snp_id, log10_BF, index_count);
-      index_count++;
-      snp_hash[snp_id] = 100;
-      snp_vec.push_back(snp);
-      
+
+
+      snp_vec.emplace_back(snpct, log10_BF, index_count);
+            index_count++;
+      snpct++;
     }
   }
    
@@ -333,8 +346,8 @@ void controller::load_data_zscore(char *filename){
   }else{
     // already defined, concate the existing snpVec                                               
     int pos = loc_hash[curr_loc_id];
-    for(int i=0;i<snp_vec.size();i++){
-      locVec[pos].snpVec.push_back(snp_vec[i]);
+    for(auto &tsnp : snp_vec){
+      locVec[pos].snpVec.push_back(tsnp);
     }
   }
   
@@ -377,6 +390,7 @@ void controller::load_data_BF(char *filename){
   double log10_BF;
   int index_count = 0;
   int loc_count = 0;
+  size_t snpct=0;
   while(getline(in,line)){
 
     ins.clear();
@@ -398,9 +412,9 @@ void controller::load_data_BF(char *filename){
 	  }else{
 	    // already defined, concate the existing snpVec
 	    int pos = loc_hash[curr_loc_id];
-	    for(int i=0;i<snp_vec.size();i++){
-	      locVec[pos].snpVec.push_back(snp_vec[i]);
-	    }	   
+	    for(auto &tsnp : snp_vec){
+              locVec[pos].snpVec.push_back(tsnp);
+            }
 	  }
 	  
 	  snp_vec.clear();
@@ -410,10 +424,13 @@ void controller::load_data_BF(char *filename){
    
       }
       
-      SNP snp(snp_id, log10_BF, index_count);
+      //      SNP snp(snp_id, log10_BF, index_count);
+
+      auto ir =snp_hash.insert(std::make_pair(snp_id, snpct));
+      hash2snp.push_back(ir.first->first.c_str());
+      snp_vec.emplace_back(snpct,log10_BF,index_count);
       index_count++;
-      snp_hash[snp_id] = 100;
-      snp_vec.push_back(snp);
+      snpct++;
       
     }
   }
@@ -429,8 +446,8 @@ void controller::load_data_BF(char *filename){
   }else{
     // already defined, concate the existing snpVec                                               
     int pos = loc_hash[curr_loc_id];
-    for(int i=0;i<snp_vec.size();i++){
-      locVec[pos].snpVec.push_back(snp_vec[i]);
+    for(auto &tsnp : snp_vec){
+      locVec[pos].snpVec.push_back(tsnp);
     }
   }
   
@@ -451,113 +468,116 @@ void controller::load_data_BF(char *filename){
 
 
 
-void controller::load_map(char* gene_file, char *snp_file){
+// void controller::load_map(char* gene_file, char *snp_file){
   
-  if(fastqtl_use_dtss)
-    return;
+//   if(fastqtl_use_dtss)
+//     return;
   
-  if(strlen(gene_file)==0 || strlen(snp_file)==0){
-    return;
-  }
+//   if(strlen(gene_file)==0 || strlen(snp_file)==0){
+//     return;
+//   }
 
-  
-
-  map<string, int> gene_map;
-  map<string, int> snp_map;
-
-  ifstream gfile(gene_file, ios_base::in | ios_base::binary);
-  boost::iostreams::filtering_istream in;
-
-  in.push(boost::iostreams::gzip_decompressor());
-  in.push(gfile);
   
 
-  string line;
-  istringstream ins;
+//   map<string, int> gene_map;
+//   map<string, int> snp_map;
+
+//   ifstream gfile(gene_file, ios_base::in | ios_base::binary);
+//   boost::iostreams::filtering_istream in;
+
+//   in.push(boost::iostreams::gzip_decompressor());
+//   in.push(gfile);
+  
+
+//   string line;
+//   istringstream ins;
 
   
-  string gene_id;
-  int chr;
-  double tss1;
-  double tss2;
-  while(getline(in,line)){
+//   string gene_id;
+//   int chr;
+//   double tss1;
+//   double tss2;
+//   while(getline(in,line)){
 
-    ins.clear();
-    ins.str(line);
+//     ins.clear();
+//     ins.str(line);
 
-    if(ins>>gene_id>>chr>>tss1>>tss2){
-      if(loc_hash.find(gene_id) != loc_hash.end()){
-	gene_map[gene_id] = tss1;
-      }
-    }
-  }
-  gfile.close();
+//     if(ins>>gene_id>>chr>>tss1>>tss2){
+//       if(loc_hash.find(gene_id) != loc_hash.end()){
+// 	gene_map[gene_id] = tss1;
+//       }
+//     }
+//   }
+//   gfile.close();
 
   
-  ifstream sfile(snp_file, ios_base::in | ios_base::binary);
-  boost::iostreams::filtering_istream snp_in;
+//   ifstream sfile(snp_file, ios_base::in | ios_base::binary);
+//   boost::iostreams::filtering_istream snp_in;
   
-  snp_in.push(boost::iostreams::gzip_decompressor());
-  snp_in.push(sfile);
+//   snp_in.push(boost::iostreams::gzip_decompressor());
+//   snp_in.push(sfile);
 
-  istringstream snp_ins;
+//   istringstream snp_ins;
 
 
-  string snp_id;
-  double pos;
+//   string snp_id;
+//   double pos;
   
-  while(getline(snp_in,line)){
+//   while(getline(snp_in,line)){
 
-    snp_ins.clear();
-    snp_ins.str(line);
+//     snp_ins.clear();
+//     snp_ins.str(line);
 
-    if(snp_ins>>snp_id>>chr>>pos){
-      if(snp_hash.find(snp_id)!=snp_hash.end()){
-	snp_map[snp_id] = pos;
-      }
-    }
-  }
-  sfile.close();
+//     if(snp_ins>>snp_id>>chr>>pos){
+//       if(snp_hash.find(snp_id)!=snp_hash.end()){
+// 	snp_map[snp_id] = pos;
+//       }
+//     }
+//   }
+//   sfile.close();
 
-  dist_bin = gsl_vector_int_calloc(p);
-  map<int, int> bin_hash;
+//   dist_bin = gsl_vector_int_calloc(p);
+//   map<int, int> bin_hash;
  
-  for (int i=0;i<locVec.size();i++){
-    string loc_id = locVec[i].id;
-    for(int j=0;j<locVec[i].snpVec.size();j++){
-      string snp_id = locVec[i].snpVec[j].id;
-      int bin = classify_dist_bin(snp_map[snp_id], gene_map[loc_id],dist_bin_size);
-      if(bin_hash.find(bin)==bin_hash.end()){
-         bin_hash[bin] = 0;
-      }
-      bin_hash[bin]++;
-      gsl_vector_int_set(dist_bin,locVec[i].snpVec[j].index, bin);
-    }
-  }
+//   for (int i=0;i<locVec.size();i++){
+//     string loc_id = locVec[i].id;
+//     for(int j=0;j<locVec[i].snpVec.size();j++){
+//       auto snp_id = locVec[i].snpVec[j].id;
+//       int bin = classify_dist_bin(snp_map[snp_id], gene_map[loc_id],dist_bin_size);
+//       if(bin_hash.find(bin)==bin_hash.end()){
+//          bin_hash[bin] = 0;
+//       }
+//       bin_hash[bin]++;
+//       gsl_vector_int_set(dist_bin,locVec[i].snpVec[j].index, bin);
+//     }
+//   }
   
 
-  dtss_map[0] =0;
-  dtss_rmap[0] = 0;
-  int count = 1;
-  for (map<int,int>::iterator it=bin_hash.begin(); it!=bin_hash.end(); ++it){
-    //printf("bin %d    %d \n", it->first, it->second);
-    if(it->first==0)
-      continue;
-    dtss_map[it->first] = count;
-    dtss_rmap[count] = it->first;
-    //printf("%d   %f    %d\n",count, map_bin_2_dist(count,dist_bin_size),it->second);
-    count++;
-  }
+//   dtss_map[0] =0;
+//   dtss_rmap[0] = 0;
+//   int count = 1;
+//   for (map<int,int>::iterator it=bin_hash.begin(); it!=bin_hash.end(); ++it){
+//     //printf("bin %d    %d \n", it->first, it->second);
+//     if(it->first==0)
+//       continue;
+//     dtss_map[it->first] = count;
+//     dtss_rmap[count] = it->first;
+//     //printf("%d   %f    %d\n",count, map_bin_2_dist(count,dist_bin_size),it->second);
+//     count++;
+//   }
   
-  dist_bin_level = count;
+//   dist_bin_level = count;
   
-  for(int i=0;i<p;i++){
-    //printf("%d \n", gsl_vector_int_get(dist_bin,i));
-    gsl_vector_int_set(dist_bin, i, dtss_map[gsl_vector_int_get(dist_bin,i)]);
-  }
-  //exit(1);
+//   for(int i=0;i<p;i++){
+//     //printf("%d \n", gsl_vector_int_get(dist_bin,i));
+//     gsl_vector_int_set(dist_bin, i, dtss_map[gsl_vector_int_get(dist_bin,i)]);
+//   }
+//   //exit(1);
   
-}
+// }
+
+
+//void controller::load_alt_annotation(std::vector<std::string> snpvec, )
 
 
 
@@ -566,7 +586,8 @@ void controller::load_map(char* gene_file, char *snp_file){
 void controller::load_annotation(char* annot_file){
 
  
-  map<string, vector<double> > annot_map;
+  unordered_map<size_t, vector<double> > annot_map;
+
 
   map<int, int> col2cat;
   map<int, int> col2cpos;
@@ -628,10 +649,8 @@ void controller::load_annotation(char* annot_file){
 	  string name = token.substr(0,token.size()-2);
 	  dvar_name_vec.push_back(name);
 	  kd++;
-	  
 	}
-	
-	col_count++;
+          col_count++;
       }
       
 
@@ -642,26 +661,32 @@ void controller::load_annotation(char* annot_file){
     
 
     // read in data
-   
-    
+
+      string snp;
     while(getline(in,line)){
      
       ins.clear();
       ins.str(line);
-      string snp;
+
       
     
       ins>>snp;
-   
-      if(snp_hash[snp] != 100)
-	continue;
+      auto snpct = snp_hash.find(snp);
+      if(snpct == snp_hash.end()){
+	fprintf(stderr, "Error: cannot find snp: %s\n", snp.c_str());
+	 exit(1);
+      }
+      size_t tsnpct = snpct->second;
+      // if(snp_hash[snp] != 100)
+      // 	continue;
       
       double val;
       vector<double> avec;
+      auto hint = annot_map.insert(std::make_pair(tsnpct,avec));
       while(ins>>val){
-	avec.push_back(val);	
+	hint.first->second.push_back(val);
       }
-      annot_map[snp] = avec;
+      //      annot_map[snp] = avec;
     }
   }
   
@@ -687,7 +712,7 @@ void controller::load_annotation(char* annot_file){
   if(kc+kd>0){
     for (int i=0;i<locVec.size();i++){
       for(int j=0;j<locVec[i].snpVec.size();j++){
-	string snp_id = locVec[i].snpVec[j].id;
+	auto snp_id = locVec[i].snpVec[j].id;
 	int index = locVec[i].snpVec[j].index;
 	
 	vector<double> avec((kd+kc),0.0);
@@ -1251,8 +1276,9 @@ void controller::dump_prior(char *prior_path){
     FILE *fd = fopen(file_name.c_str(), "w");
     for(int j=0;j<locVec[i].snpVec.size();j++){
       int index = locVec[i].snpVec[j].index;
-      string name = locVec[i].snpVec[j].id;
-      fprintf(fd, "%s  %9.4e\n",name.c_str(), gsl_vector_get(prior_vec, index));
+      //      string name = locVec[i].snpVec[j].id;
+      auto name = hash2snp[locVec[i].snpVec[j].id];
+      fprintf(fd, "%s  %9.4e\n",name, gsl_vector_get(prior_vec, index));
     }
     fclose(fd);
   }
@@ -1270,8 +1296,8 @@ void controller::dump_pip(char *file){
     string gname = locVec[i].id;
     for(int j=0;j<locVec[i].snpVec.size();j++){
       int index = locVec[i].snpVec[j].index;
-      string name = locVec[i].snpVec[j].id;
-      fprintf(fd, "%s\t%s\t%9.4e\t%9.4e\n",name.c_str(), gname.c_str(), gsl_vector_get(prior_vec, index), gsl_vector_get(pip_vec, index));
+      auto name = hash2snp[locVec[i].snpVec[j].id];
+      fprintf(fd, "%s\t%s\t%9.4e\t%9.4e\n",name, gname.c_str(), gsl_vector_get(prior_vec, index), gsl_vector_get(pip_vec, index));
     }
   }
   fclose(fd);

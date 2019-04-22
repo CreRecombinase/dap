@@ -9,30 +9,43 @@
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
-
+#include <unordered_map>
 
 using namespace std;
 
 
 
 
-class SNP {
+// class SNP {
 
- public:
+//  public:
 
-  string id;
-  int index;
+//   string id;
+//   int index;
+//   double log10_BF;
+//   int dtss_bin; // distance to TSS, used by fastQTL
+
+//   SNP(string snp_id, double snp_log10_BF, int snp_index):id(std::move(snp_id)),log10_BF(snp_log10_BF),index(snp_index){
+
+//   }
+
+
+
+// };
+
+
+class SNP{
+public:
+  size_t id;
   double log10_BF;
-  int dtss_bin; // distance to TSS, used by fastQTL
+  int index;
+  int dtss_bin;
+  SNP(size_t snp_id, double snp_log10_BF, int snp_index):id(std::move(snp_id)),log10_BF(snp_log10_BF),index(snp_index){
 
-  SNP(string snp_id, double snp_log10_BF, int snp_index){
-    id = snp_id;
-    log10_BF = snp_log10_BF;
-    index = snp_index;
   }
- 
-    
- 
+
+
+
 };
 
 
@@ -102,7 +115,9 @@ class controller {
 
 
   map<string,int> loc_hash;
-  map<string,int> snp_hash;
+  unordered_map<string,int> snp_hash;
+  std::vector<const char*> hash2snp;
+
   vector<string> cvar_name_vec;
   vector<string> dvar_name_vec;
 
