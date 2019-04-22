@@ -1,7 +1,7 @@
 #include "classdef.h"
 #include <fstream>
 #include <sstream>
-
+#include "zstd_h5plugin.h"
 
 
 void show_banner(){
@@ -21,6 +21,8 @@ int main(int argc, char **argv){
   
   //olist.push_back(0.1);
   //phlist.push_back(0.05);
+
+  register_zstd();
 
   char data_file[256];
   char gmap_file[256];
@@ -252,26 +254,8 @@ int main(int argc, char **argv){
   con.init_pi1 = init_pi1;
   con.print_avg = print_avg;
 
-  switch(data_format){
-  case 1:
-    con.load_data(data_file);
-    break;
-  case 2:
-    con.load_data_BF(data_file);
-    break;
-  case 3:
-    con.load_data_zscore(data_file);
-    break;
-  case 4:
-    con.fastqtl_use_dtss = fastqtl_use_dtss;
-    con.load_data_fastqtl(data_file);
-    gmap_file[0]=smap_file[0] = 0;
-    break;
-  default:
-    con.load_data(data_file);
-    break;
-  }
-   
+
+  con.load_data_zscore(data_file);
 
   //con.load_map(gmap_file, smap_file);
   con.load_annotation(annot_file);

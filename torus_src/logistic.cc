@@ -349,7 +349,7 @@ void logistic_cat_pred(gsl_vector *beta  // Vector of parameters length = 1 + Su
 	Xbetai+=beta->data[gsl_matrix_int_get(X,i,k)-1+iParm];
       iParm+=nlev->data[k]-1;
     }
-    yhat->data[i]=1/(1 + gsl_sf_exp(-Xbetai));
+    yhat->data[i]=1/(1 + std::exp(-Xbetai));
   }
 }
 
